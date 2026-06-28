@@ -27,6 +27,7 @@ def init_db():
     conn = get_connection()
     c = conn.cursor()
 
+    # ===== 用户表 =====
     c.execute("""CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
@@ -35,6 +36,7 @@ def init_db():
         created_at TEXT DEFAULT (datetime('now','localtime'))
     )""")
 
+    # ===== 项目设置表 =====
     c.execute("""CREATE TABLE IF NOT EXISTS project_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         key TEXT NOT NULL UNIQUE,
@@ -42,9 +44,13 @@ def init_db():
         updated_at TEXT DEFAULT (datetime('now','localtime'))
     )""")
 
+    # ===== 任务表 - 添加 plan_id, spu_id, task_type =====
     c.execute("""CREATE TABLE IF NOT EXISTS tasks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         task_no TEXT NOT NULL,
+        plan_id INTEGER DEFAULT 0,
+        spu_id INTEGER DEFAULT 0,
+        task_type TEXT DEFAULT '',
         module TEXT DEFAULT '',
         title TEXT NOT NULL,
         description TEXT DEFAULT '',
@@ -61,8 +67,13 @@ def init_db():
         updated_at TEXT DEFAULT (datetime('now','localtime'))
     )""")
 
+    # ===== 竞品表 - 添加关联字段 =====
     c.execute("""CREATE TABLE IF NOT EXISTS competitors (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER DEFAULT 0,
+        spu_id INTEGER DEFAULT 0,
+        sku_id INTEGER DEFAULT 0,
+        category TEXT DEFAULT '',
         name TEXT NOT NULL,
         brand TEXT DEFAULT '',
         platform TEXT DEFAULT '',
@@ -73,12 +84,24 @@ def init_db():
         selling_points TEXT DEFAULT '',
         pain_points TEXT DEFAULT '',
         our_opportunity TEXT DEFAULT '',
+        material TEXT DEFAULT '',
+        sizes TEXT DEFAULT '',
+        has_engraving INTEGER DEFAULT 0,
+        has_locator INTEGER DEFAULT 0,
+        pros TEXT DEFAULT '',
+        cons TEXT DEFAULT '',
+        user_review_summary TEXT DEFAULT '',
+        negative_review_reasons TEXT DEFAULT '',
+        qa_content TEXT DEFAULT '',
+        借鉴_points TEXT DEFAULT '',
+        避坑_points TEXT DEFAULT '',
         image_link TEXT DEFAULT '',
         is_key INTEGER DEFAULT 0,
         notes TEXT DEFAULT '',
         updated_at TEXT DEFAULT (datetime('now','localtime'))
     )""")
 
+    # ===== 产品需求表 =====
     c.execute("""CREATE TABLE IF NOT EXISTS product_requirements (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         req_no TEXT NOT NULL,
@@ -91,8 +114,12 @@ def init_db():
         status TEXT DEFAULT '待定'
     )""")
 
+    # ===== 样品表 - 添加关联字段和next_action =====
     c.execute("""CREATE TABLE IF NOT EXISTS samples (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER DEFAULT 0,
+        spu_id INTEGER DEFAULT 0,
+        sku_id INTEGER DEFAULT 0,
         sample_no TEXT NOT NULL,
         product_version TEXT DEFAULT '',
         supplier TEXT DEFAULT '',
@@ -100,16 +127,23 @@ def init_db():
         cost REAL DEFAULT 0,
         expected_date TEXT DEFAULT '',
         actual_date TEXT DEFAULT '',
-        status TEXT DEFAULT '未打样',
+        status TEXT DEFAULT '待打样',
         test_result TEXT DEFAULT '',
         passed INTEGER DEFAULT 0,
         modification_notes TEXT DEFAULT '',
         owner TEXT DEFAULT '',
+        next_action TEXT DEFAULT '',
+        notes TEXT DEFAULT '',
         updated_at TEXT DEFAULT (datetime('now','localtime'))
     )""")
 
+    # ===== 供应商表 - 添加关联字段和特殊服务支持 =====
     c.execute("""CREATE TABLE IF NOT EXISTS suppliers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER DEFAULT 0,
+        spu_id INTEGER DEFAULT 0,
+        sku_id INTEGER DEFAULT 0,
+        component_id INTEGER DEFAULT 0,
         name TEXT NOT NULL,
         type TEXT DEFAULT '',
         contact_person TEXT DEFAULT '',
@@ -121,6 +155,9 @@ def init_db():
         sample_cost REAL DEFAULT 0,
         sample_lead_time TEXT DEFAULT '',
         production_lead_time TEXT DEFAULT '',
+        supports_engraving INTEGER DEFAULT 0,
+        supports_logo INTEGER DEFAULT 0,
+        supports_locator_parts INTEGER DEFAULT 0,
         advantages TEXT DEFAULT '',
         risks TEXT DEFAULT '',
         cooperation_status TEXT DEFAULT '未联系',
@@ -128,8 +165,12 @@ def init_db():
         updated_at TEXT DEFAULT (datetime('now','localtime'))
     )""")
 
+    # ===== 成本利润表 - 添加关联字段 =====
     c.execute("""CREATE TABLE IF NOT EXISTS cost_profit (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER DEFAULT 0,
+        spu_id INTEGER DEFAULT 0,
+        sku_id INTEGER DEFAULT 0,
         product_version TEXT NOT NULL,
         chest_harness_cost REAL DEFAULT 0,
         leash_cost REAL DEFAULT 0,
@@ -148,6 +189,7 @@ def init_db():
         updated_at TEXT DEFAULT (datetime('now','localtime'))
     )""")
 
+    # ===== 活动日志表 =====
     c.execute("""CREATE TABLE IF NOT EXISTS activity_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         action TEXT DEFAULT '',
@@ -158,9 +200,90 @@ def init_db():
         created_at TEXT DEFAULT (datetime('now','localtime'))
     )""")
 
+    # ===== 开发计划表 =====
+    c.execute("""CREATE TABLE IF NOT EXISTS development_plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        status TEXT DEFAULT '进行中',
+        owner TEXT DEFAULT '焦蒙豪',
+        start_date TEXT DEFAULT '',
+        target_date TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        updated_at TEXT DEFAULT (datetime('now','localtime'))
+    )""")
+
+    # ===== SPU表 =====
+    c.execute("""CREATE TABLE IF NOT EXISTS spus (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER REFERENCES development_plans(id),
+        name TEXT NOT NULL,
+        category TEXT DEFAULT '',
+        positioning TEXT DEFAULT '',
+        target_audience TEXT DEFAULT '',
+        selling_points TEXT DEFAULT '',
+        stage TEXT DEFAULT '概念',
+        owner TEXT DEFAULT '焦蒙豪',
+        notes TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        updated_at TEXT DEFAULT (datetime('now','localtime'))
+    )""")
+
+    # ===== SKU表 =====
+    c.execute("""CREATE TABLE IF NOT EXISTS skus (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        spu_id INTEGER REFERENCES spus(id),
+        name TEXT DEFAULT '',
+        color TEXT DEFAULT '',
+        size TEXT DEFAULT '',
+        style TEXT DEFAULT '',
+        specification TEXT DEFAULT '',
+        has_engraving INTEGER DEFAULT 0,
+        has_locator_port INTEGER DEFAULT 0,
+        has_locator INTEGER DEFAULT 0,
+        estimated_price REAL DEFAULT 0,
+        status TEXT DEFAULT '开发中',
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        updated_at TEXT DEFAULT (datetime('now','localtime'))
+    )""")
+
+    # ===== 零部件表 =====
+    c.execute("""CREATE TABLE IF NOT EXISTS components (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sku_id INTEGER REFERENCES skus(id),
+        name TEXT NOT NULL,
+        type TEXT DEFAULT '其他',
+        quantity REAL DEFAULT 1,
+        unit TEXT DEFAULT '个',
+        unit_price REAL DEFAULT 0,
+        supplier TEXT DEFAULT '',
+        notes TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        updated_at TEXT DEFAULT (datetime('now','localtime'))
+    )""")
+
+    # ===== 成本明细表 =====
+    c.execute("""CREATE TABLE IF NOT EXISTS cost_items_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cost_plan_id INTEGER DEFAULT 0,
+        plan_id INTEGER DEFAULT 0,
+        spu_id INTEGER DEFAULT 0,
+        sku_id INTEGER DEFAULT 0,
+        name TEXT NOT NULL,
+        category TEXT DEFAULT '物料',
+        quantity REAL DEFAULT 1,
+        unit_price REAL DEFAULT 0,
+        subtotal REAL DEFAULT 0,
+        source TEXT DEFAULT '手动',
+        sort_order INTEGER DEFAULT 0,
+        notes TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        updated_at TEXT DEFAULT (datetime('now','localtime'))
+    )""")
+
     conn.commit()
 
-    # 插入默认数据（仅在表为空时）
+    # 插入默认数据
     row = c.execute("SELECT COUNT(*) FROM users").fetchone()
     if row[0] == 0:
         _insert_defaults(c)
@@ -170,89 +293,357 @@ def init_db():
 
 
 def _insert_defaults(c):
-    # 用户
+    # ===== 用户 - 完整姓名 =====
     c.execute("INSERT OR IGNORE INTO users(name, role, avatar_color) VALUES(?,?,?)",
-              ("阿豪", "项目负责人 / 产品负责人", "#E74C3C"))
+              ("焦蒙豪", "管理员", "#E74C3C"))
     c.execute("INSERT OR IGNORE INTO users(name, role, avatar_color) VALUES(?,?,?)",
-              ("潘翔", "财务负责人 / 执行跟进", "#3498DB"))
+              ("潘翔", "管理员", "#3498DB"))
     c.execute("INSERT OR IGNORE INTO users(name, role, avatar_color) VALUES(?,?,?)",
-              ("浩博", "生产负责人 / 供应链负责人", "#2ECC71"))
+              ("潘浩博", "管理员", "#2ECC71"))
 
-    # 项目设置
-    settings = {
-        "project_name": "宠物胸背牵引绳项目",
-        "current_phase": "竞品研究",
-        "weekly_goal": "完成竞品调研，确认产品核心卖点，启动工厂对接",
-    }
-    for k, v in settings.items():
+    # ===== 默认开发计划 =====
+    c.execute("""INSERT OR IGNORE INTO development_plans(name, description, status, owner, start_date, target_date)
+                 VALUES(?,?,?,?,?,?)""",
+              ("宠物胸背牵引绳系列开发", "开发宠物胸背牵引绳系列产品", "进行中", "焦蒙豪", 
+               datetime.now().strftime("%Y-%m-%d"), ""))
+
+    plan_row = c.execute("SELECT id FROM development_plans WHERE name='宠物胸背牵引绳系列开发'").fetchone()
+    plan_id = plan_row[0] if plan_row else 1
+
+    # ===== SPU示例 =====
+    spu_data = [
+        ("宠物胸背+牵引绳套装", "胸背牵引", "中高端宠物主", "高品质胸背+牵引绳", "概念"),
+        ("宠物定位器挂扣配件", "定位器配件", "有防丢需求的宠物主", "专用定位器安装位", "概念"),
+        ("刻字定制项圈", "定制服务", "追求个性化的宠物主", "支持宠物名刻字", "概念"),
+    ]
+    
+    spu_ids = []
+    for spu_name, category, audience, selling_pts, stage in spu_data:
+        c.execute("""INSERT OR IGNORE INTO spus(plan_id, name, category, target_audience, selling_points, stage, owner)
+                     VALUES(?,?,?,?,?,?,?)""",
+                  (plan_id, spu_name, category, audience, selling_pts, stage, "焦蒙豪"))
+        spu_row = c.execute("SELECT id FROM spus WHERE name=? AND plan_id=?", (spu_name, plan_id)).fetchone()
+        spu_ids.append(spu_row[0] if spu_row else len(spu_ids) + 1)
+
+    # ===== SKU示例 =====
+    if len(spu_ids) >= 1:
+        for name, color, size, price in [
+            ("基础款-S码", "黑色", "S", 89),
+            ("基础款-M码", "黑色", "M", 99),
+        ]:
+            c.execute("""INSERT OR IGNORE INTO skus(spu_id, name, color, size, status, estimated_price)
+                         VALUES(?,?,?,?,?,?)""", (spu_ids[0], name, color, size, "开发中", price))
+
+    if len(spu_ids) >= 2:
+        c.execute("""INSERT OR IGNORE INTO skus(spu_id, name, status, estimated_price)
+                     VALUES(?,?,?,?)""", (spu_ids[1], "定位器挂扣-通用款", "开发中", 39))
+
+    if len(spu_ids) >= 3:
+        for name, price in [
+            ("定制项圈-织带款", 49),
+            ("定制项圈-真皮款", 79),
+        ]:
+            c.execute("""INSERT OR IGNORE INTO skus(spu_id, name, has_engraving, status, estimated_price)
+                         VALUES(?,?,?,?,?)""", (spu_ids[2], name, 1, "开发中", price))
+
+    # ===== 零部件示例 =====
+    sku_row = c.execute("SELECT id FROM skus WHERE spu_id=? LIMIT 1", (spu_ids[0],)).fetchone()
+    if sku_row:
+        for name, comp_type, unit_price in [
+            ("胸背主体", "半成品", 25),
+            ("牵引绳", "半成品", 8),
+            ("D型扣", "五金件", 2),
+            ("织带", "织带", 4),
+        ]:
+            c.execute("""INSERT OR IGNORE INTO components(sku_id, name, type, unit_price)
+                         VALUES(?,?,?,?)""", (sku_row[0], name, comp_type, unit_price))
+
+    # ===== 项目设置 =====
+    for k, v in {"project_name": "宠物胸背牵引绳系列开发", "current_phase": "竞品研究", "weekly_goal": "完成竞品调研"}.items():
         c.execute("INSERT OR IGNORE INTO project_settings(key, value) VALUES(?,?)", (k, v))
 
-    # 默认任务
-    tasks = [
-        ("T-001", "竞品", "收集20个宠物胸背牵引绳竞品", "在淘宝、京东、亚马逊等平台收集主流竞品", "阿豪", "", "", "进行中", "高", "", "", "", 0),
-        ("T-002", "竞品", "收集10个AirTag宠物配件竞品", "重点看AirTag固定方式和用户评价", "阿豪", "", "", "未开始", "高", "", "", "", 0),
-        ("T-003", "产品", "整理竞品差评和用户痛点", "汇总各平台差评，提炼核心痛点", "阿豪", "", "", "未开始", "高", "", "", "", 0),
-        ("T-004", "产品", "确认第一版产品核心卖点", "基于竞品分析确定差异化卖点", "阿豪", "", "", "未开始", "高", "", "", "", 1),
-        ("T-005", "生产", "找3家胸背牵引绳工厂", "优先有宠物用品经验的工厂", "浩博", "", "", "进行中", "高", "", "", "", 0),
-        ("T-006", "打样", "找2种AirTag固定结构方案", "嵌入式和外挂式各一种", "浩博", "", "", "未开始", "高", "", "", "", 0),
-        ("T-007", "打样", "确认第一版样品结构", "综合成本、工艺、用户体验确定结构", "浩博", "阿豪", "", "未开始", "高", "", "", "", 1),
-        ("T-008", "财务", "建立产品成本模板", "建立三个版本的成本核算模板", "潘翔", "", "", "未开始", "高", "", "", "", 0),
-        ("T-009", "财务", "整理竞品售价区间", "统计各平台价格分布", "潘翔", "", "", "未开始", "中", "", "", "", 0),
-        ("T-010", "供应商", "记录供应商报价", "汇总各供应商报价信息", "潘翔", "浩博", "", "未开始", "高", "", "", "", 0),
-        ("T-011", "产品", "确认第一版是否只做3个尺码", "S/M/L 还是更多尺码", "阿豪", "浩博", "", "未开始", "中", "", "", "", 1),
-        ("T-012", "产品", "确认是否第一版加入宠物名定制", "评估定制成本和工艺难度", "阿豪", "潘翔", "", "未开始", "高", "", "", "", 1),
-        ("T-013", "测试", "找10-20个真实宠物用户试用", "招募测试用户", "阿豪", "潘翔", "", "未开始", "中", "", "", "", 0),
-        ("T-014", "测试", "制定样品测试标准", "制定详细的测试清单和通过标准", "浩博", "阿豪", "", "未开始", "高", "", "", "", 0),
-        ("T-015", "财务", "计算三个版本毛利", "基础款、定位款、定制款的毛利分析", "潘翔", "", "", "未开始", "高", "", "", "", 0),
-    ]
-    for t in tasks:
-        c.execute("""INSERT INTO tasks(task_no, module, title, description, assignee, helper, deadline,
-                     status, priority, progress, blocker, next_action, need_approval) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""", t)
-
-    # 默认产品需求
-    reqs = [
-        ("R-001", "胸背不勒脖子", "高", 1, "采用加宽加软垫设计，分散压力", "", "阿豪", "待定"),
-        ("R-002", "AirTag/定位器固定仓", "高", 1, "专用固定位，防止宠物咬到", "", "阿豪", "待定"),
-        ("R-003", "宠物名字定制", "中", 0, "支持刺绣或印字定制宠物名", "", "阿豪", "待定"),
-        ("R-004", "快速穿戴", "高", 1, "一秒扣合，快速穿戴设计", "", "阿豪", "待定"),
-        ("R-005", "防挣脱", "高", 1, "双重保护结构，防止狗狗挣脱", "", "阿豪", "待定"),
-        ("R-006", "不容易被狗咬到定位器", "高", 1, "AirTag安装位设计在狗嘴碰不到的位置", "", "阿豪", "待定"),
-        ("R-007", "舒适透气", "中", 1, "透气网面材质，夏天不闷热", "", "阿豪", "待定"),
-        ("R-008", "颜色好看", "中", 1, "选择年轻群体喜欢的配色", "", "阿豪", "待定"),
-        ("R-009", "尺码清晰", "高", 1, "明确的尺码表和测量指引", "", "阿豪", "待定"),
-        ("R-010", "可小批量生产", "高", 1, "工艺支持小批量起订", "", "阿豪", "待定"),
-    ]
-    for r in reqs:
-        c.execute("""INSERT INTO product_requirements(req_no, requirement, importance, must_have_v1,
-                     description, final_decision, owner, status) VALUES(?,?,?,?,?,?,?,?)""", r)
+    # ===== 默认任务 =====
+    for i, (no, title, assignee, status, priority, need) in enumerate([
+        ("T-001", "收集竞品信息", "焦蒙豪", "进行中", "高", 0),
+        ("T-002", "整理竞品差评", "焦蒙豪", "未开始", "高", 0),
+        ("T-003", "找胸背工厂", "潘浩博", "进行中", "高", 0),
+        ("T-004", "建立成本模板", "潘翔", "未开始", "中", 0),
+    ]):
+        c.execute("""INSERT INTO tasks(task_no, plan_id, title, assignee, status, priority, need_approval)
+                     VALUES(?,?,?,?,?,?,?)""", (no, plan_id, title, assignee, status, priority, need))
 
 
-# ===================== 任务 CRUD =====================
-
-def get_all_tasks():
+# ===================== 用户 =====================
+def get_all_users():
     conn = get_connection()
-    rows = conn.execute("SELECT * FROM tasks ORDER BY CASE priority WHEN '高' THEN 1 WHEN '中' THEN 2 WHEN '低' THEN 3 END, created_at DESC").fetchall()
+    rows = conn.execute("SELECT * FROM users ORDER BY id").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
+def get_user_names():
+    return ["焦蒙豪", "潘翔", "潘浩博"]
 
-def get_task_by_id(task_id):
+# ===================== 开发计划 =====================
+def get_all_plans():
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM development_plans ORDER BY id DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_plan(plan_id):
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM development_plans WHERE id=?", (plan_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def create_plan(data):
+    conn = get_connection()
+    now = datetime.now().isoformat()
+    c = conn.execute("""INSERT INTO development_plans(name, description, status, owner, start_date, target_date, created_at, updated_at)
+                        VALUES(?,?,?,?,?,?,?,?)""",
+                     (data.get("name",""), data.get("description",""), data.get("status","进行中"),
+                      data.get("owner","焦蒙豪"), data.get("start_date",""), data.get("target_date",""), now, now))
+    conn.commit()
+    log_activity("新建开发计划", "plan", c.lastrowid, data.get("owner","焦蒙豪"), data.get("name",""))
+    conn.close()
+    return c.lastrowid
+
+def update_plan(plan_id, data):
+    conn = get_connection()
+    data["updated_at"] = datetime.now().isoformat()
+    sets = ", ".join([f"{k}=?" for k in data.keys()])
+    vals = list(data.values()) + [plan_id]
+    conn.execute(f"UPDATE development_plans SET {sets} WHERE id=?", vals)
+    conn.commit()
+    conn.close()
+
+def delete_plan(plan_id):
+    conn = get_connection()
+    p = conn.execute("SELECT name FROM development_plans WHERE id=?", (plan_id,)).fetchone()
+    conn.execute("DELETE FROM development_plans WHERE id=?", (plan_id,))
+    conn.commit()
+    log_activity("删除开发计划", "plan", plan_id, "系统", p["name"] if p else "")
+    conn.close()
+
+# ===================== SPU =====================
+def get_spus_by_plan(plan_id):
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM spus WHERE plan_id=? ORDER BY id", (plan_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_all_spus():
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM spus ORDER BY id DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_spu(spu_id):
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM spus WHERE id=?", (spu_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def create_spu(data):
+    conn = get_connection()
+    now = datetime.now().isoformat()
+    c = conn.execute("""INSERT INTO spus(plan_id, name, category, positioning, target_audience, selling_points, stage, owner, notes, created_at, updated_at)
+                        VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                     (data.get("plan_id",0), data.get("name",""), data.get("category",""),
+                      data.get("positioning",""), data.get("target_audience",""), data.get("selling_points",""),
+                      data.get("stage","概念"), data.get("owner","焦蒙豪"), data.get("notes",""), now, now))
+    conn.commit()
+    log_activity("新建SPU", "spu", c.lastrowid, data.get("owner","焦蒙豪"), data.get("name",""))
+    conn.close()
+    return c.lastrowid
+
+def update_spu(spu_id, data):
+    conn = get_connection()
+    data["updated_at"] = datetime.now().isoformat()
+    sets = ", ".join([f"{k}=?" for k in data.keys()])
+    vals = list(data.values()) + [spu_id]
+    conn.execute(f"UPDATE spus SET {sets} WHERE id=?", vals)
+    conn.commit()
+    conn.close()
+
+def delete_spu(spu_id):
+    conn = get_connection()
+    s = conn.execute("SELECT name FROM spus WHERE id=?", (spu_id,)).fetchone()
+    conn.execute("DELETE FROM spus WHERE id=?", (spu_id,))
+    conn.commit()
+    log_activity("删除SPU", "spu", spu_id, "系统", s["name"] if s else "")
+    conn.close()
+
+# ===================== SKU =====================
+def get_skus_by_spu(spu_id):
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM skus WHERE spu_id=? ORDER BY id", (spu_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_all_skus():
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM skus ORDER BY id DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_sku(sku_id):
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM skus WHERE id=?", (sku_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def create_sku(data):
+    conn = get_connection()
+    now = datetime.now().isoformat()
+    c = conn.execute("""INSERT INTO skus(spu_id, name, color, size, style, specification, has_engraving, has_locator_port, has_locator, estimated_price, status, created_at, updated_at)
+                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     (data.get("spu_id",0), data.get("name",""), data.get("color",""),
+                      data.get("size",""), data.get("style",""), data.get("specification",""),
+                      1 if data.get("has_engraving") else 0, 1 if data.get("has_locator_port") else 0,
+                      1 if data.get("has_locator") else 0, data.get("estimated_price",0),
+                      data.get("status","开发中"), now, now))
+    conn.commit()
+    conn.close()
+    return c.lastrowid
+
+def update_sku(sku_id, data):
+    conn = get_connection()
+    data["updated_at"] = datetime.now().isoformat()
+    data["has_engraving"] = 1 if data.get("has_engraving") else 0
+    data["has_locator_port"] = 1 if data.get("has_locator_port") else 0
+    data["has_locator"] = 1 if data.get("has_locator") else 0
+    sets = ", ".join([f"{k}=?" for k in data.keys()])
+    vals = list(data.values()) + [sku_id]
+    conn.execute(f"UPDATE skus SET {sets} WHERE id=?", vals)
+    conn.commit()
+    conn.close()
+
+def delete_sku(sku_id):
+    conn = get_connection()
+    conn.execute("DELETE FROM skus WHERE id=?", (sku_id,))
+    conn.commit()
+    conn.close()
+
+# ===================== 零部件 =====================
+def get_components_by_sku(sku_id):
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM components WHERE sku_id=? ORDER BY id", (sku_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_all_components():
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM components ORDER BY id DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def create_component(data):
+    conn = get_connection()
+    now = datetime.now().isoformat()
+    c = conn.execute("""INSERT INTO components(sku_id, name, type, quantity, unit, unit_price, supplier, notes, created_at, updated_at)
+                        VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                     (data.get("sku_id",0), data.get("name",""), data.get("type","其他"),
+                      data.get("quantity",1), data.get("unit","个"), data.get("unit_price",0),
+                      data.get("supplier",""), data.get("notes",""), now, now))
+    conn.commit()
+    conn.close()
+    return c.lastrowid
+
+def update_component(comp_id, data):
+    conn = get_connection()
+    data["updated_at"] = datetime.now().isoformat()
+    sets = ", ".join([f"{k}=?" for k in data.keys()])
+    vals = list(data.values()) + [comp_id]
+    conn.execute(f"UPDATE components SET {sets} WHERE id=?", vals)
+    conn.commit()
+    conn.close()
+
+def delete_component(comp_id):
+    conn = get_connection()
+    conn.execute("DELETE FROM components WHERE id=?", (comp_id,))
+    conn.commit()
+    conn.close()
+
+# ===================== 成本明细 =====================
+def get_cost_items(plan_id=0, spu_id=0, sku_id=0):
+    conn = get_connection()
+    query = "SELECT * FROM cost_items_new WHERE 1=1"
+    params = []
+    if plan_id: query += " AND plan_id=?"; params.append(plan_id)
+    if spu_id: query += " AND spu_id=?"; params.append(spu_id)
+    if sku_id: query += " AND sku_id=?"; params.append(sku_id)
+    query += " ORDER BY sort_order, id"
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def create_cost_item(data):
+    conn = get_connection()
+    now = datetime.now().isoformat()
+    data["subtotal"] = data.get("quantity", 1) * data.get("unit_price", 0)
+    c = conn.execute("""INSERT INTO cost_items_new(plan_id, spu_id, sku_id, name, category, quantity, unit_price, subtotal, source, sort_order, notes, created_at, updated_at)
+                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     (data.get("plan_id",0), data.get("spu_id",0), data.get("sku_id",0),
+                      data.get("name",""), data.get("category","物料"), data.get("quantity",1),
+                      data.get("unit_price",0), data["subtotal"], data.get("source","手动"),
+                      data.get("sort_order",0), data.get("notes",""), now, now))
+    conn.commit()
+    conn.close()
+    return c.lastrowid
+
+def update_cost_item(item_id, data):
+    conn = get_connection()
+    data["updated_at"] = datetime.now().isoformat()
+    data["subtotal"] = data.get("quantity", 1) * data.get("unit_price", 0)
+    sets = ", ".join([f"{k}=?" for k in data.keys()])
+    vals = list(data.values()) + [item_id]
+    conn.execute(f"UPDATE cost_items_new SET {sets} WHERE id=?", vals)
+    conn.commit()
+    conn.close()
+
+def delete_cost_item(item_id):
+    conn = get_connection()
+    conn.execute("DELETE FROM cost_items_new WHERE id=?", (item_id,))
+    conn.commit()
+    conn.close()
+
+def reorder_cost_items(item_ids):
+    conn = get_connection()
+    for idx, item_id in enumerate(item_ids):
+        conn.execute("UPDATE cost_items_new SET sort_order=? WHERE id=?", (idx, item_id))
+    conn.commit()
+    conn.close()
+
+# ===================== 任务 =====================
+def get_all_tasks():
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM tasks ORDER BY id DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_tasks_by_plan(plan_id):
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM tasks WHERE plan_id=? ORDER BY id DESC", (plan_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_task(task_id):
     conn = get_connection()
     row = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
     conn.close()
     return dict(row) if row else None
 
-
 def create_task(data):
     conn = get_connection()
-    # 自动生成编号
     row = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()
     task_no = f"T-{row[0]+1:03d}"
     now = datetime.now().isoformat()
-    c = conn.execute("""INSERT INTO tasks(task_no, module, title, description, assignee, helper, deadline,
+    c = conn.execute("""INSERT INTO tasks(task_no, plan_id, spu_id, task_type, module, title, description, assignee, helper, deadline,
                  status, priority, progress, blocker, next_action, need_approval, created_at, updated_at)
-                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                 (task_no, data.get("module",""), data.get("title",""), data.get("description",""),
+                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 (task_no, data.get("plan_id",0), data.get("spu_id",0), data.get("task_type",""),
+                  data.get("module",""), data.get("title",""), data.get("description",""),
                   data.get("assignee",""), data.get("helper",""), data.get("deadline",""),
                   data.get("status","未开始"), data.get("priority","中"),
                   data.get("progress",""), data.get("blocker",""), data.get("next_action",""),
@@ -261,7 +652,6 @@ def create_task(data):
     log_activity("新建任务", "task", c.lastrowid, data.get("assignee","系统"), data.get("title",""))
     conn.close()
     return c.lastrowid
-
 
 def update_task(task_id, data):
     conn = get_connection()
@@ -274,7 +664,6 @@ def update_task(task_id, data):
     log_activity("更新任务", "task", task_id, data.get("assignee","系统"), data.get("title",""))
     conn.close()
 
-
 def delete_task(task_id):
     conn = get_connection()
     t = conn.execute("SELECT title FROM tasks WHERE id=?", (task_id,)).fetchone()
@@ -283,39 +672,49 @@ def delete_task(task_id):
     log_activity("删除任务", "task", task_id, "系统", t["title"] if t else "")
     conn.close()
 
-
-# ===================== 竞品 CRUD =====================
-
+# ===================== 竞品 =====================
 def get_all_competitors():
     conn = get_connection()
     rows = conn.execute("SELECT * FROM competitors ORDER BY updated_at DESC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
+def get_competitors_by_plan_spu(plan_id=0, spu_id=0):
+    conn = get_connection()
+    query = "SELECT * FROM competitors WHERE 1=1"
+    params = []
+    if plan_id: query += " AND plan_id=?"; params.append(plan_id)
+    if spu_id: query += " AND spu_id=?"; params.append(spu_id)
+    query += " ORDER BY updated_at DESC"
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 def create_competitor(data):
     conn = get_connection()
     data["updated_at"] = datetime.now().isoformat()
     data["is_key"] = 1 if data.get("is_key") else 0
+    data["has_engraving"] = 1 if data.get("has_engraving") else 0
+    data["has_locator"] = 1 if data.get("has_locator") else 0
     cols = ", ".join(data.keys())
     placeholders = ", ".join(["?"] * len(data))
     c = conn.execute(f"INSERT INTO competitors({cols}) VALUES({placeholders})", list(data.values()))
     conn.commit()
-    log_activity("新增竞品", "competitor", c.lastrowid, "阿豪", data.get("name",""))
+    log_activity("新增竞品", "competitor", c.lastrowid, "焦蒙豪", data.get("name",""))
     conn.close()
     return c.lastrowid
-
 
 def update_competitor(comp_id, data):
     conn = get_connection()
     data["updated_at"] = datetime.now().isoformat()
     data["is_key"] = 1 if data.get("is_key") else 0
+    data["has_engraving"] = 1 if data.get("has_engraving") else 0
+    data["has_locator"] = 1 if data.get("has_locator") else 0
     sets = ", ".join([f"{k}=?" for k in data.keys()])
     vals = list(data.values()) + [comp_id]
     conn.execute(f"UPDATE competitors SET {sets} WHERE id=?", vals)
     conn.commit()
     conn.close()
-
 
 def delete_competitor(comp_id):
     conn = get_connection()
@@ -323,15 +722,12 @@ def delete_competitor(comp_id):
     conn.commit()
     conn.close()
 
-
-# ===================== 产品需求 CRUD =====================
-
+# ===================== 产品需求 =====================
 def get_all_requirements():
     conn = get_connection()
     rows = conn.execute("SELECT * FROM product_requirements ORDER BY id").fetchall()
     conn.close()
     return [dict(r) for r in rows]
-
 
 def create_requirement(data):
     conn = get_connection()
@@ -346,7 +742,6 @@ def create_requirement(data):
     conn.close()
     return c.lastrowid
 
-
 def update_requirement(req_id, data):
     conn = get_connection()
     data["must_have_v1"] = 1 if data.get("must_have_v1") else 0
@@ -356,22 +751,29 @@ def update_requirement(req_id, data):
     conn.commit()
     conn.close()
 
-
 def delete_requirement(req_id):
     conn = get_connection()
     conn.execute("DELETE FROM product_requirements WHERE id=?", (req_id,))
     conn.commit()
     conn.close()
 
-
-# ===================== 样品 CRUD =====================
-
+# ===================== 样品 =====================
 def get_all_samples():
     conn = get_connection()
     rows = conn.execute("SELECT * FROM samples ORDER BY updated_at DESC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
+def get_samples_by_plan_spu(plan_id=0, spu_id=0):
+    conn = get_connection()
+    query = "SELECT * FROM samples WHERE 1=1"
+    params = []
+    if plan_id: query += " AND plan_id=?"; params.append(plan_id)
+    if spu_id: query += " AND spu_id=?"; params.append(spu_id)
+    query += " ORDER BY updated_at DESC"
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 def create_sample(data):
     conn = get_connection()
@@ -384,10 +786,9 @@ def create_sample(data):
     placeholders = ", ".join(["?"] * len(data))
     c = conn.execute(f"INSERT INTO samples({cols}) VALUES({placeholders})", list(data.values()))
     conn.commit()
-    log_activity("新增样品", "sample", c.lastrowid, data.get("owner","浩博"), data.get("sample_content",""))
+    log_activity("新增样品", "sample", c.lastrowid, data.get("owner","潘浩博"), data.get("sample_content",""))
     conn.close()
     return c.lastrowid
-
 
 def update_sample(sample_id, data):
     conn = get_connection()
@@ -399,44 +800,50 @@ def update_sample(sample_id, data):
     conn.commit()
     conn.close()
 
-
 def delete_sample(sample_id):
     conn = get_connection()
     conn.execute("DELETE FROM samples WHERE id=?", (sample_id,))
     conn.commit()
     conn.close()
 
-
-# ===================== 供应商 CRUD =====================
-
+# ===================== 供应商 =====================
 def get_all_suppliers():
     conn = get_connection()
     rows = conn.execute("SELECT * FROM suppliers ORDER BY updated_at DESC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
+def get_supplier_names():
+    conn = get_connection()
+    rows = conn.execute("SELECT DISTINCT name FROM suppliers ORDER BY name").fetchall()
+    conn.close()
+    return [r["name"] for r in rows]
 
 def create_supplier(data):
     conn = get_connection()
     data["updated_at"] = datetime.now().isoformat()
+    data["supports_engraving"] = 1 if data.get("supports_engraving") else 0
+    data["supports_logo"] = 1 if data.get("supports_logo") else 0
+    data["supports_locator_parts"] = 1 if data.get("supports_locator_parts") else 0
     cols = ", ".join(data.keys())
     placeholders = ", ".join(["?"] * len(data))
     c = conn.execute(f"INSERT INTO suppliers({cols}) VALUES({placeholders})", list(data.values()))
     conn.commit()
-    log_activity("新增供应商", "supplier", c.lastrowid, "浩博", data.get("name",""))
+    log_activity("新增供应商", "supplier", c.lastrowid, "潘浩博", data.get("name",""))
     conn.close()
     return c.lastrowid
-
 
 def update_supplier(sup_id, data):
     conn = get_connection()
     data["updated_at"] = datetime.now().isoformat()
+    data["supports_engraving"] = 1 if data.get("supports_engraving") else 0
+    data["supports_logo"] = 1 if data.get("supports_logo") else 0
+    data["supports_locator_parts"] = 1 if data.get("supports_locator_parts") else 0
     sets = ", ".join([f"{k}=?" for k in data.keys()])
     vals = list(data.values()) + [sup_id]
     conn.execute(f"UPDATE suppliers SET {sets} WHERE id=?", vals)
     conn.commit()
     conn.close()
-
 
 def delete_supplier(sup_id):
     conn = get_connection()
@@ -444,29 +851,30 @@ def delete_supplier(sup_id):
     conn.commit()
     conn.close()
 
-
-# ===================== 成本利润 CRUD =====================
-
+# ===================== 成本利润 =====================
 def get_all_costs():
     conn = get_connection()
     rows = conn.execute("SELECT * FROM cost_profit ORDER BY id").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
+def get_costs_by_sku(sku_id=0):
+    conn = get_connection()
+    if sku_id:
+        rows = conn.execute("SELECT * FROM cost_profit WHERE sku_id=? ORDER BY id", (sku_id,)).fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM cost_profit ORDER BY id").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 def create_cost(data):
     conn = get_connection()
     data["updated_at"] = datetime.now().isoformat()
-    # 自动计算
     data["total_cost"] = sum([
-        data.get("chest_harness_cost", 0) or 0,
-        data.get("leash_cost", 0) or 0,
-        data.get("hardware_cost", 0) or 0,
-        data.get("airtag_structure_cost", 0) or 0,
-        data.get("customization_cost", 0) or 0,
-        data.get("packaging_cost", 0) or 0,
-        data.get("labor_cost", 0) or 0,
-        data.get("shipping_cost", 0) or 0,
+        data.get("chest_harness_cost", 0) or 0, data.get("leash_cost", 0) or 0,
+        data.get("hardware_cost", 0) or 0, data.get("airtag_structure_cost", 0) or 0,
+        data.get("customization_cost", 0) or 0, data.get("packaging_cost", 0) or 0,
+        data.get("labor_cost", 0) or 0, data.get("shipping_cost", 0) or 0,
         data.get("other_cost", 0) or 0,
     ])
     price = data.get("suggested_price", 0) or 0
@@ -479,19 +887,14 @@ def create_cost(data):
     conn.close()
     return c.lastrowid
 
-
 def update_cost(cost_id, data):
     conn = get_connection()
     data["updated_at"] = datetime.now().isoformat()
     data["total_cost"] = sum([
-        data.get("chest_harness_cost", 0) or 0,
-        data.get("leash_cost", 0) or 0,
-        data.get("hardware_cost", 0) or 0,
-        data.get("airtag_structure_cost", 0) or 0,
-        data.get("customization_cost", 0) or 0,
-        data.get("packaging_cost", 0) or 0,
-        data.get("labor_cost", 0) or 0,
-        data.get("shipping_cost", 0) or 0,
+        data.get("chest_harness_cost", 0) or 0, data.get("leash_cost", 0) or 0,
+        data.get("hardware_cost", 0) or 0, data.get("airtag_structure_cost", 0) or 0,
+        data.get("customization_cost", 0) or 0, data.get("packaging_cost", 0) or 0,
+        data.get("labor_cost", 0) or 0, data.get("shipping_cost", 0) or 0,
         data.get("other_cost", 0) or 0,
     ])
     price = data.get("suggested_price", 0) or 0
@@ -503,22 +906,18 @@ def update_cost(cost_id, data):
     conn.commit()
     conn.close()
 
-
 def delete_cost(cost_id):
     conn = get_connection()
     conn.execute("DELETE FROM cost_profit WHERE id=?", (cost_id,))
     conn.commit()
     conn.close()
 
-
 # ===================== 项目设置 =====================
-
 def get_setting(key, default=""):
     conn = get_connection()
     row = conn.execute("SELECT value FROM project_settings WHERE key=?", (key,)).fetchone()
     conn.close()
     return row["value"] if row else default
-
 
 def set_setting(key, value):
     conn = get_connection()
@@ -527,56 +926,63 @@ def set_setting(key, value):
     conn.commit()
     conn.close()
 
-
 # ===================== 统计 =====================
-
-def get_task_stats():
+def get_task_stats(plan_id=0):
     conn = get_connection()
     stats = {}
-    stats["total"] = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
-    stats["in_progress"] = conn.execute("SELECT COUNT(*) FROM tasks WHERE status='进行中'").fetchone()[0]
-    stats["completed"] = conn.execute("SELECT COUNT(*) FROM tasks WHERE status='已完成'").fetchone()[0]
-    stats["at_risk"] = conn.execute("SELECT COUNT(*) FROM tasks WHERE status='有风险'").fetchone()[0]
-    stats["not_started"] = conn.execute("SELECT COUNT(*) FROM tasks WHERE status='未开始'").fetchone()[0]
-    stats["waiting"] = conn.execute("SELECT COUNT(*) FROM tasks WHERE status='等待中'").fetchone()[0]
-    stats["cancelled"] = conn.execute("SELECT COUNT(*) FROM tasks WHERE status='已取消'").fetchone()[0]
-    # 延期任务：截止时间不为空且已过期且未完成
+    base = f"SELECT COUNT(*) FROM tasks{' WHERE plan_id=' + str(plan_id) if plan_id else ''}"
+    stats["total"] = conn.execute(base).fetchone()[0]
+    stats["in_progress"] = conn.execute(f"{base} AND status='进行中'").fetchone()[0]
+    stats["completed"] = conn.execute(f"{base} AND status='已完成'").fetchone()[0]
+    stats["at_risk"] = conn.execute(f"{base} AND status='有风险'").fetchone()[0]
+    stats["not_started"] = conn.execute(f"{base} AND status='未开始'").fetchone()[0]
+    stats["waiting"] = conn.execute(f"{base} AND status='等待中'").fetchone()[0]
     today = datetime.now().strftime("%Y-%m-%d")
-    stats["overdue"] = conn.execute(
-        "SELECT COUNT(*) FROM tasks WHERE deadline != '' AND deadline < ? AND status NOT IN ('已完成','已取消')",
-        (today,)
-    ).fetchone()[0]
+    stats["overdue"] = conn.execute(f"{base} AND deadline != '' AND deadline < '{today}' AND status NOT IN ('已完成','已取消')").fetchone()[0]
     conn.close()
     return stats
 
-
-def get_overdue_tasks():
+def get_overdue_tasks(plan_id=0):
     conn = get_connection()
     today = datetime.now().strftime("%Y-%m-%d")
-    rows = conn.execute(
-        "SELECT * FROM tasks WHERE deadline != '' AND deadline < ? AND status NOT IN ('已完成','已取消') ORDER BY deadline",
-        (today,)
-    ).fetchall()
+    query = "SELECT * FROM tasks WHERE deadline != '' AND deadline < ? AND status NOT IN ('已完成','已取消')"
+    params = [today]
+    if plan_id: query += " AND plan_id=?"; params.append(plan_id)
+    query += " ORDER BY deadline"
+    rows = conn.execute(query, params).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
-
-def get_risk_tasks():
+def get_risk_tasks(plan_id=0):
     conn = get_connection()
-    rows = conn.execute("SELECT * FROM tasks WHERE status='有风险' ORDER BY deadline").fetchall()
+    query = "SELECT * FROM tasks WHERE status='有风险'"
+    if plan_id: query += f" AND plan_id={plan_id}"
+    query += " ORDER BY deadline"
+    rows = conn.execute(query).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
-
-def get_approval_tasks():
+def get_approval_tasks(plan_id=0):
     conn = get_connection()
-    rows = conn.execute("SELECT * FROM tasks WHERE need_approval=1 AND status NOT IN ('已完成','已取消') ORDER BY created_at").fetchall()
+    query = "SELECT * FROM tasks WHERE need_approval=1 AND status NOT IN ('已完成','已取消')"
+    if plan_id: query += f" AND plan_id={plan_id}"
+    query += " ORDER BY created_at"
+    rows = conn.execute(query).fetchall()
     conn.close()
     return [dict(r) for r in rows]
-
 
 def get_recent_logs(limit=10):
     conn = get_connection()
     rows = conn.execute("SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+def get_plan_stats(plan_id):
+    conn = get_connection()
+    stats = {}
+    stats["spu_count"] = conn.execute("SELECT COUNT(*) FROM spus WHERE plan_id=?", (plan_id,)).fetchone()[0]
+    stats["sku_count"] = conn.execute("""SELECT COUNT(*) FROM skus s JOIN spus ON s.spu_id=spus.id WHERE spus.plan_id=?""", (plan_id,)).fetchone()[0]
+    stats["sample_in_progress"] = conn.execute("""SELECT COUNT(*) FROM samples s JOIN spus ON s.spu_id=spus.id WHERE spus.plan_id=? AND s.status IN ('打样中','已寄出','测试中')""", (plan_id,)).fetchone()[0]
+    stats["total_cost"] = conn.execute("SELECT COALESCE(SUM(total_cost), 0) FROM cost_profit WHERE plan_id=?", (plan_id,)).fetchone()[0]
+    conn.close()
+    return stats

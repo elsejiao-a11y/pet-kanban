@@ -5,29 +5,35 @@ import db
 
 st.markdown("# 📋 任务看板")
 
-current_user = st.session_state.get("current_user", "阿豪")
+current_user = st.session_state.get("current_user", "焦蒙豪")
+plan_id = st.session_state.get("current_plan_id", 0)
+
+# ===== 获取数据 =====
+all_tasks = db.get_all_tasks()
+plans = db.get_all_plans()
+spus = db.get_spus_by_plan(plan_id) if plan_id else []
 
 # ===== 筛选栏 =====
-all_tasks = db.get_all_tasks()
-modules = ["全部", "产品", "竞品", "生产", "打样", "财务", "供应商", "测试", "销售", "团队"]
+task_types = ["全部", "竞品分析", "需求整理", "打样跟进", "供应商沟通", "成本测算", "页面资料", "上架准备", "测试反馈", "其他"]
 statuses = ["全部", "未开始", "进行中", "等待中", "有风险", "已完成", "已取消"]
-assignees = ["全部", "阿豪", "潘翔", "浩博"]
+assignees = ["全部"] + db.get_user_names()
 priorities = ["全部", "高", "中", "低"]
 
+# 第一行筛选
 fc1, fc2, fc3, fc4 = st.columns(4)
 with fc1:
-    filter_module = st.selectbox("模块筛选", modules, key="filter_module")
+    filter_type = st.selectbox("任务类型", task_types, key="filter_type")
 with fc2:
-    filter_status = st.selectbox("状态筛选", statuses, key="filter_status")
+    filter_status = st.selectbox("状态", statuses, key="filter_status")
 with fc3:
-    filter_assignee = st.selectbox("负责人筛选", assignees, key="filter_assign")
+    filter_assignee = st.selectbox("负责人", assignees, key="filter_assign")
 with fc4:
-    filter_priority = st.selectbox("优先级筛选", priorities, key="filter_priority")
+    filter_priority = st.selectbox("优先级", priorities, key="filter_priority")
 
-# 快捷筛选
+# 第二行快捷筛选
 qc1, qc2, qc3, qc4 = st.columns(4)
 with qc1:
-    show_mine = st.checkbox(f"👤 我的任务", key="show_mine")
+    show_mine = st.checkbox("👤 我的任务", key="show_mine")
 with qc2:
     show_overdue = st.checkbox("🔴 延期任务", key="show_overdue")
 with qc3:
@@ -37,8 +43,8 @@ with qc4:
 
 # 应用筛选
 filtered = all_tasks
-if filter_module != "全部":
-    filtered = [t for t in filtered if t["module"] == filter_module]
+if filter_type != "全部":
+    filtered = [t for t in filtered if t["task_type"] == filter_type]
 if filter_status != "全部":
     filtered = [t for t in filtered if t["status"] == filter_status]
 if filter_assignee != "全部":
@@ -74,15 +80,36 @@ if st.session_state.get("show_new_task") or st.session_state.get("editing_task")
         r1c1, r1c2 = st.columns(2)
         with r1c1:
             title = st.text_input("任务名称 *", value=edit_data["title"] if is_edit else "")
-            module = st.selectbox("模块", modules[1:], index=modules[1:].index(edit_data["module"]) if is_edit and edit_data["module"] in modules[1:] else 0)
-            assignee = st.selectbox("负责人", assignees[1:], index=assignees[1:].index(edit_data["assignee"]) if is_edit and edit_data["assignee"] in assignees[1:] else 0)
-            priority = st.selectbox("优先级", priorities[1:], index=priorities[1:].index(edit_data["priority"]) if is_edit and edit_data["priority"] in priorities[1:] else 1)
+            # 所属开发计划
+            plan_options = {p["id"]: p["name"] for p in plans}
+            selected_plan = st.selectbox(
+                "所属开发计划",
+                options=list(plan_options.keys()),
+                format_func=lambda x: plan_options.get(x, "未选择"),
+                index=list(plan_options.keys()).index(edit_data["plan_id"]) if is_edit and edit_data["plan_id"] in plan_options else 0
+            )
+            # SPU（可选）
+            plan_spus = db.get_spus_by_plan(selected_plan) if selected_plan else []
+            spu_options = {0: "无关联SPU"} | {s["id"]: s["name"] for s in plan_spus}
+            selected_spu = st.selectbox(
+                "关联SPU（可选）",
+                options=list(spu_options.keys()),
+                format_func=lambda x: spu_options.get(x, "无"),
+                index=list(spu_options.keys()).index(edit_data["spu_id"]) if is_edit and edit_data["spu_id"] in spu_options else 0
+            )
+            task_type = st.selectbox("任务类型", task_types[1:],
+                index=task_types[1:].index(edit_data["task_type"]) if is_edit and edit_data["task_type"] in task_types[1:] else 0)
         with r1c2:
-            status = st.selectbox("状态", statuses[1:], index=statuses[1:].index(edit_data["status"]) if is_edit and edit_data["status"] in statuses[1:] else 0)
+            assignee = st.selectbox("负责人", db.get_user_names(),
+                index=db.get_user_names().index(edit_data["assignee"]) if is_edit and edit_data["assignee"] in db.get_user_names() else 0)
+            priority = st.selectbox("优先级", priorities[1:],
+                index=priorities[1:].index(edit_data["priority"]) if is_edit and edit_data["priority"] in priorities[1:] else 1)
+            status = st.selectbox("状态", statuses[1:],
+                index=statuses[1:].index(edit_data["status"]) if is_edit and edit_data["status"] in statuses[1:] else 0)
             deadline = st.date_input("截止时间", value=None)
-            helper = st.text_input("协助人", value=edit_data["helper"] if is_edit else "")
-            need_approval = st.checkbox("需要阿豪拍板", value=bool(edit_data["need_approval"]) if is_edit else False)
         
+        helper = st.text_input("协助人", value=edit_data["helper"] if is_edit else "")
+        need_approval = st.checkbox("需要确认/拍板", value=bool(edit_data["need_approval"]) if is_edit else False)
         description = st.text_area("任务说明", value=edit_data["description"] if is_edit else "", height=80)
         
         r2c1, r2c2, r2c3 = st.columns(3)
@@ -101,18 +128,11 @@ if st.session_state.get("show_new_task") or st.session_state.get("editing_task")
         
         if submitted:
             data = {
-                "title": title,
-                "module": module,
-                "assignee": assignee,
-                "status": status,
-                "priority": priority,
-                "deadline": deadline.strftime("%Y-%m-%d") if deadline else "",
-                "helper": helper,
-                "need_approval": need_approval,
-                "description": description,
-                "progress": progress,
-                "blocker": blocker,
-                "next_action": next_action,
+                "title": title, "plan_id": selected_plan, "spu_id": selected_spu,
+                "task_type": task_type, "assignee": assignee, "status": status,
+                "priority": priority, "deadline": deadline.strftime("%Y-%m-%d") if deadline else "",
+                "helper": helper, "need_approval": need_approval, "description": description,
+                "progress": progress, "blocker": blocker, "next_action": next_action,
             }
             if is_edit:
                 db.update_task(edit_data["id"], data)
@@ -135,21 +155,14 @@ st.markdown("---")
 if not filtered:
     st.info("暂无符合条件的任务")
 else:
-    # 按状态分组显示
     status_order = ["有风险", "进行中", "等待中", "未开始", "已完成", "已取消"]
     for status_name in status_order:
         status_tasks = [t for t in filtered if t["status"] == status_name]
         if not status_tasks:
             continue
         
-        status_colors = {
-            "未开始": "#95A5A6",
-            "进行中": "#3498DB",
-            "等待中": "#F39C12",
-            "有风险": "#E74C3C",
-            "已完成": "#2ECC71",
-            "已取消": "#BDC3C7",
-        }
+        status_colors = {"未开始": "#95A5A6", "进行中": "#3498DB", "等待中": "#F39C12",
+                        "有风险": "#E74C3C", "已完成": "#2ECC71", "已取消": "#BDC3C7"}
         color = status_colors.get(status_name, "#999")
         st.markdown(f"#### <span style='color:{color}'>● {status_name}</span>（{len(status_tasks)}）", unsafe_allow_html=True)
         
@@ -164,8 +177,8 @@ else:
                         title_text = f"⚡ {title_text}"
                     st.markdown(f"**{title_text}**")
                     meta_parts = []
-                    if t["module"]:
-                        meta_parts.append(f"📁 {t['module']}")
+                    if t["task_type"]:
+                        meta_parts.append(f"📁 {t['task_type']}")
                     if t["blocker"]:
                         meta_parts.append(f"🚧 {t['blocker']}")
                     if meta_parts:
@@ -199,7 +212,6 @@ else:
                             st.session_state["delete_confirm"] = t["id"]
                             st.rerun()
                 
-                # 删除确认
                 if st.session_state.get("delete_confirm") == t["id"]:
                     st.warning(f"确认删除任务 {t['task_no']} {t['title']}？")
                     dc1, dc2, dc3 = st.columns([1, 1, 4])
